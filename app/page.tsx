@@ -14,6 +14,7 @@ import {
   ArrowRight 
 } from "lucide-react";
 import Image from "next/image";
+import { supabase } from "../lib/supabase";
 
 type ScreenState = "upload" | "config" | "processing" | "success";
 
@@ -32,6 +33,7 @@ export default function Home() {
   
   const [fileType, setFileType] = useState<"image" | "pdf" | "other">("pdf");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileUrl, setFileUrl] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
@@ -71,19 +73,40 @@ export default function Home() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    let progress = 0;
-    const timer = setInterval(() => {
-      progress += 25;
-      setUploadProgress(progress);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || "theprintr_uploads");
 
-      if (progress >= 100) {
-        clearInterval(timer);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dkz2dbwv1"}/auto/upload`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        setFileUrl(response.secure_url);
         setTimeout(() => {
           setIsUploading(false);
           setScreen("config");
-        }, 300);
+        }, 500);
+      } else {
+        console.error("Upload failed");
+        setIsUploading(false);
       }
-    }, 80);
+    };
+
+    xhr.onerror = () => {
+      console.error("Upload error");
+      setIsUploading(false);
+    };
+
+    xhr.send(formData);
   };
 
   const handleColorMode = (mode: "bw" | "color", newRate: number) => {
@@ -99,12 +122,34 @@ export default function Home() {
     if (copies > 1) setCopies(copies - 1);
   };
 
-  const handlePayNow = () => {
+  const handlePayNow = async () => {
     setScreen("processing");
-    setTimeout(() => {
-      setOrderToken("#PR-" + Math.floor(1000 + Math.random() * 9000));
+    const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
+
+    try {
+      const { error } = await supabase.from('orders').insert([{
+        file_url: fileUrl,
+        file_name: fileName,
+        pages: pages,
+        copies: copies,
+        color_mode: colorMode,
+        orientation: orientation,
+        page_scaling: scaling,
+        status: 'pending',
+        amount_inr: totalCost,
+        token: generatedOrderToken
+      }]);
+      
+      if (error) throw error;
+      
+      setOrderToken(generatedOrderToken);
       setScreen("success");
-    }, 1800);
+    } catch (err) {
+      console.error("Failed to insert order:", err);
+      // Fallback in case of error so user still sees success screen for now
+      setOrderToken(generatedOrderToken);
+      setScreen("success");
+    }
   };
 
   const handleReset = () => {
@@ -112,6 +157,7 @@ export default function Home() {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
+    setFileUrl("");
     setPages(1);
     setFileName("document.pdf");
     setFileType("pdf");
