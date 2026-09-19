@@ -126,30 +126,28 @@ export default function Home() {
     setScreen("processing");
     const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
 
-    try {
-      const { error } = await supabase.from('orders').insert([{
-        file_url: fileUrl,
-        file_name: fileName,
-        pages: pages,
-        copies: copies,
-        color_mode: colorMode,
-        orientation: orientation,
-        page_scaling: scaling,
-        status: 'pending',
-        amount_inr: totalCost,
-        token: generatedOrderToken
-      }]);
-      
-      if (error) throw error;
-      
-      setOrderToken(generatedOrderToken);
-      setScreen("success");
-    } catch (err) {
-      console.error("Failed to insert order:", err);
-      // Fallback in case of error so user still sees success screen for now
-      setOrderToken(generatedOrderToken);
-      setScreen("success");
+    const { error } = await supabase.from('orders').insert([{
+      order_number: generatedOrderToken,
+      file_url: fileUrl,
+      file_name: fileName,
+      pages: pages,
+      copies: copies,
+      color_mode: colorMode,
+      print_style: "Single Sided",
+      scaling: scaling,
+      status: 'pending',
+      total_amount: totalCost
+    }]);
+    
+    if (error) {
+      console.error("Supabase insert error:", error);
+      alert("Order creation failed: " + error.message);
+      setScreen("config");
+      return;
     }
+    
+    setOrderToken(generatedOrderToken);
+    setScreen("success");
   };
 
   const handleReset = () => {
