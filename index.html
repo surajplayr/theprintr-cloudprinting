@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Printr - Self-Service Cloud Print</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cotton: '#EDEBDE',
+            cherry: '#810100',
+            maroon: '#630102',
+            noir: '#1B1716',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #120f0e;
+      color: #1B1716;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .pill-active {
+      background-color: #810100 !important;
+      color: #EDEBDE !important;
+      border-color: #810100 !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex justify-center items-start sm:py-6">
+
+  <!-- Mobile Kiosk Frame -->
+  <div class="w-full max-w-md bg-cotton min-h-screen sm:min-h-[860px] sm:rounded-3xl shadow-2xl flex flex-col relative overflow-hidden">
+    
+    <!-- Top Glassmorphic Navbar -->
+    <header class="bg-white/75 backdrop-blur-md border-b border-white/50 px-5 py-3.5 flex items-center justify-between shadow-sm sticky top-0 z-30">
+      <div class="flex items-center">
+        <img 
+          src="https://res.cloudinary.com/dkz2dbwv1/image/upload/fl_preserve_transparency/v1789804442/izp4ikxtpgtl76zf4n7e.jpg?_s=public-apps" 
+          alt="The Printr" 
+          class="h-9 w-auto object-contain"
+        />
+      </div>
+      <div class="flex items-center space-x-1.5 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-noir border border-noir/10 shadow-sm">
+        <i data-lucide="printer" class="w-3.5 h-3.5 text-cherry"></i>
+        <span>Epson L8050</span>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="flex-1 p-5 overflow-y-auto pb-32 custom-scroll">
+
+      <!-- ================= SCREEN 1: UPLOAD SCREEN ================= -->
+      <section id="screenUpload" class="space-y-6">
+        <div class="text-center pt-2 space-y-1">
+          <span class="inline-block px-3 py-0.5 bg-cherry/10 text-cherry text-[10px] font-black rounded-full uppercase tracking-widest border border-cherry/20">
+            Smart Cloud Print
+          </span>
+          <h2 class="text-2xl font-black text-noir tracking-tight">Print in seconds</h2>
+          <p class="text-xs text-noir/70 font-medium">Upload any document directly from your device</p>
+        </div>
+
+        <!-- Drag & Drop Upload Zone -->
+        <label for="fileInput" class="border-2 border-dashed border-maroon/40 hover:border-cherry bg-white/60 hover:bg-white transition-all rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer group shadow-sm text-center">
+          <div class="w-16 h-16 rounded-full bg-cherry/10 group-hover:scale-105 transition-transform flex items-center justify-center text-cherry mb-4">
+            <i data-lucide="file-up" class="w-8 h-8"></i>
+          </div>
+          <span class="font-bold text-noir text-base">Drop your file here</span>
+          <span class="text-xs text-noir/60 mt-1">or tap to browse your phone</span>
+          <span class="inline-block mt-3 px-3 py-1 bg-noir/5 text-noir/70 text-[11px] font-semibold rounded-md border border-noir/10">
+            PDF, DOCX, PPTX, JPG, PNG
+          </span>
+          <input type="file" id="fileInput" class="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,image/*" />
+        </label>
+
+        <!-- Simulated Upload Progress Bar -->
+        <div id="uploadProgressBox" class="hidden bg-white rounded-2xl p-4 shadow-sm border border-noir/10 space-y-3">
+          <div class="flex items-center justify-between text-xs font-bold text-noir">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-cherry"></i>
+              Uploading document...
+            </span>
+            <span id="progressText" class="text-cherry font-extrabold">0%</span>
+          </div>
+          <div class="w-full h-2.5 bg-cotton rounded-full overflow-hidden">
+            <div id="progressBar" class="h-full bg-cherry transition-all duration-200 rounded-full" style="width: 0%"></div>
+          </div>
+          <p class="text-[11px] text-noir/60">Please stay on this page while we process your file.</p>
+        </div>
+
+        <!-- Trust & Security Banner -->
+        <div class="flex items-start gap-3 bg-white/70 rounded-xl p-3.5 border border-noir/10 text-xs text-noir/80">
+          <i data-lucide="shield-check" class="w-5 h-5 text-cherry shrink-0 mt-0.5"></i>
+          <div>
+            <span class="font-bold block text-noir">Encrypted & Secure</span>
+            Your file is deleted immediately after printing is complete.
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 2: CONFIGURATION SCREEN ================= -->
+      <section id="screenConfig" class="hidden space-y-4">
+        
+        <!-- File Preview Header Card -->
+        <div class="bg-white rounded-2xl p-3 shadow-sm border border-noir/10 flex items-center justify-between">
+          <div class="flex items-center gap-2.5 overflow-hidden">
+            <div class="w-10 h-12 bg-cotton border border-noir/15 rounded-lg flex flex-col items-center justify-center text-cherry font-black text-[11px] shrink-0">
+              <i data-lucide="file-text" class="w-4 h-4 mb-0.5"></i>
+              <span>PDF</span>
+            </div>
+            <div class="truncate">
+              <p id="fileNamePreview" class="text-xs font-extrabold text-noir truncate">document.pdf</p>
+              <p class="text-[10px] text-noir/60 font-semibold mt-0.5"><span id="docPagesCount">2</span> page(s) ready to print</p>
+            </div>
+          </div>
+          <button id="btnChangeDoc" class="text-xs font-bold text-cherry hover:text-maroon underline px-2 py-1">
+            Change
+          </button>
+        </div>
+
+        <!-- Document Live Print Preview Canvas -->
+        <div class="bg-noir/5 border border-noir/10 rounded-2xl p-3 flex flex-col items-center justify-center space-y-2">
+          <div class="flex items-center justify-between w-full px-1 text-[11px] font-bold text-noir/70">
+            <span>Print Viewport</span>
+            <span class="text-[10px] bg-white px-2 py-0.5 rounded border border-noir/10 font-semibold text-noir">Page 1 of 2</span>
+          </div>
+          
+          <div id="previewSheet" class="w-44 h-56 bg-white rounded-md shadow-md border border-noir/20 p-3 flex flex-col justify-between transition-all duration-300 overflow-hidden relative">
+            <div class="space-y-1.5 w-full">
+              <div class="h-2 w-3/4 bg-noir/20 rounded"></div>
+              <div class="h-1.5 w-full bg-noir/10 rounded"></div>
+              <div class="h-1.5 w-5/6 bg-noir/10 rounded"></div>
+              <div class="h-1.5 w-4/6 bg-noir/10 rounded"></div>
+              <div class="h-12 w-full bg-noir/5 rounded border border-dashed border-noir/15 mt-2 flex items-center justify-center text-[9px] font-bold text-noir/40">
+                [Content Preview]
+              </div>
+            </div>
+            <div class="flex justify-between items-center text-[8px] text-noir/40 pt-1 border-t border-noir/10">
+              <span id="previewScalingMode">Fit to Page</span>
+              <span>A4</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Setting: Color Mode (Updated Pricing) -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-extrabold tracking-wide uppercase text-noir/70">Color Mode</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" class="btn-color-mode pill-active py-2 px-3 rounded-xl border border-noir/15 font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition-all" data-color="bw" data-rate="5.0">
+              <span>Black & White</span>
+              <span class="text-[10px] opacity-80">₹5.00 / page</span>
+            </button>
+            <button type="button" class="btn-color-mode bg-white text-noir py-2 px-3 rounded-xl border border-noir/15 font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition-all hover:bg-cotton" data-color="color" data-rate="10.0">
+              <span>Full Color</span>
+              <span class="text-[10px] opacity-80">₹10.00 / page</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting: Print Sides -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-extrabold tracking-wide uppercase text-noir/70">Print Sides</label>
+          <div class="w-full">
+            <button type="button" class="w-full pill-active py-2.5 px-3 rounded-xl border border-noir/15 font-bold text-xs flex items-center justify-center gap-2 cursor-default">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-cotton"></i>
+              <span>Single Sided</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting: Orientation -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-extrabold tracking-wide uppercase text-noir/70">Orientation</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" class="btn-orient pill-active py-2 px-2 rounded-xl border border-noir/15 font-bold text-xs text-center transition-all" data-orient="auto">
+              Auto
+            </button>
+            <button type="button" class="btn-orient bg-white text-noir py-2 px-2 rounded-xl border border-noir/15 font-bold text-xs text-center transition-all hover:bg-cotton" data-orient="portrait">
+              Portrait
+            </button>
+            <button type="button" class="btn-orient bg-white text-noir py-2 px-2 rounded-xl border border-noir/15 font-bold text-xs text-center transition-all hover:bg-cotton" data-orient="landscape">
+              Landscape
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting: Scaling -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-extrabold tracking-wide uppercase text-noir/70">Page Scaling</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" class="btn-scaling pill-active py-2 px-1 rounded-xl border border-noir/15 font-bold text-xs text-center transition-all" data-scaling="fit">
+              Fit to page
+            </button>
+            <button type="button" class="btn-scaling bg-white text-noir py-2 px-1 rounded-xl border border-noir/15 font-bold text-xs text-center transition-all hover:bg-cotton" data-scaling="actual">
+              Actual size
+            </button>
+            <button type="button" class="btn-scaling bg-white text-noir py-2 px-1 rounded-xl border border-noir/15 font-bold text-xs text-center transition-all hover:bg-cotton" data-scaling="fill">
+              Fill page
+            </button>
+          </div>
+        </div>
+
+        <!-- Setting: Number of Copies Stepper (Max 20 limit) -->
+        <div class="bg-white rounded-2xl p-3 border border-noir/10 flex items-center justify-between shadow-sm">
+          <div>
+            <span class="text-xs font-bold text-noir block">Number of Copies</span>
+            <span class="text-[10px] text-noir/50 font-medium">Max 20 copies per order</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button id="btnDecCopies" class="w-8 h-8 rounded-lg bg-cotton border border-noir/20 flex items-center justify-center font-black text-noir hover:bg-noir/10 active:scale-95 transition-all">
+              -
+            </button>
+            <span id="copiesVal" class="text-sm font-black text-noir min-w-[20px] text-center">1</span>
+            <button id="btnIncCopies" class="w-8 h-8 rounded-lg bg-cotton border border-noir/20 flex items-center justify-center font-black text-noir hover:bg-noir/10 active:scale-95 transition-all">
+              +
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SCREEN 3: PAYMENT / PROCESSING ================= -->
+      <section id="screenProcessing" class="hidden text-center py-16 space-y-6">
+        <div class="relative w-24 h-24 mx-auto flex items-center justify-center">
+          <div class="absolute inset-0 border-4 border-cherry/20 rounded-full"></div>
+          <div class="absolute inset-0 border-4 border-cherry border-t-transparent rounded-full animate-spin"></div>
+          <i data-lucide="credit-card" class="w-10 h-10 text-maroon"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-black text-noir">Processing Payment</h3>
+          <p class="text-xs text-noir/70 mt-1">Connecting to Epson L8050 Queue...</p>
+        </div>
+        <div class="p-3 bg-white/70 rounded-xl border border-noir/10 text-xs text-noir/80 max-w-xs mx-auto">
+          Please do not refresh or tap back.
+        </div>
+      </section>
+
+      <!-- ================= SCREEN 4: SUCCESS / RECEIPT ================= -->
+      <section id="screenSuccess" class="hidden space-y-5">
+        <div class="text-center pt-2">
+          <div class="w-16 h-16 bg-cherry text-cotton rounded-full mx-auto flex items-center justify-center mb-3 shadow-lg">
+            <i data-lucide="check" class="w-9 h-9 stroke-[3]"></i>
+          </div>
+          <h2 class="text-2xl font-black text-noir">Order Queued!</h2>
+          <p class="text-xs text-noir/70 mt-0.5">Printer Epson L8050 has received your document</p>
+        </div>
+
+        <!-- Receipt Card -->
+        <div class="bg-white rounded-2xl p-5 border border-noir/10 shadow-sm space-y-3.5">
+          <div class="flex items-center justify-between pb-3 border-b border-noir/10">
+            <span class="text-xs text-noir/60 font-medium">Order Token</span>
+            <span id="orderToken" class="font-extrabold text-sm text-cherry">#PR-8921</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between text-noir/80">
+              <span>Printer</span>
+              <span class="font-bold text-noir">Epson L8050</span>
+            </div>
+            <div class="flex justify-between text-noir/80">
+              <span>Color Mode</span>
+              <span id="receiptColor" class="font-bold text-noir">Black & White</span>
+            </div>
+            <div class="flex justify-between text-noir/80">
+              <span>Print Style</span>
+              <span class="font-bold text-noir">Single Sided</span>
+            </div>
+            <div class="flex justify-between text-noir/80">
+              <span>Scaling</span>
+              <span id="receiptScaling" class="font-bold text-noir">Fit to Page</span>
+            </div>
+            <div class="flex justify-between text-noir/80">
+              <span>Total Pages</span>
+              <span id="receiptPages" class="font-bold text-noir">2 Pages</span>
+            </div>
+            <div class="flex justify-between text-noir/80">
+              <span>Copies</span>
+              <span id="receiptCopies" class="font-bold text-noir">1</span>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-noir/10 flex items-center justify-between">
+            <span class="font-black text-sm text-noir">Total Paid</span>
+            <span id="receiptTotal" class="font-black text-lg text-cherry">₹10.00</span>
+          </div>
+        </div>
+
+        <button id="btnResetAll" class="w-full py-3.5 bg-noir hover:bg-noir/90 text-cotton rounded-xl font-extrabold text-xs transition-all active:scale-[0.99] flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          Print Another Document
+        </button>
+      </section>
+
+    </main>
+
+    <!-- Sticky Bottom Calculation & Checkout Bar -->
+    <footer id="bottomBar" class="hidden absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-noir/10 px-5 py-3.5 z-20 flex items-center justify-between">
+      <div>
+        <p class="text-[10px] text-noir/60 uppercase font-extrabold tracking-wider">Estimated Total</p>
+        <p id="totalPrice" class="text-2xl font-black text-cherry leading-tight">₹10.00</p>
+      </div>
+      <button id="btnPayNow" class="bg-cherry hover:bg-maroon active:scale-95 transition-all text-cotton font-extrabold text-xs py-3 px-6 rounded-xl shadow-md flex items-center gap-1.5">
+        <span>Confirm & Pay</span>
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </footer>
+
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // App State (Default rate updated to ₹5.00)
+    let state = {
+      pages: 2,
+      fileName: 'document.pdf',
+      colorMode: 'bw',
+      rate: 5.0,
+      orientation: 'auto',
+      scaling: 'fit',
+      copies: 1
+    };
+
+    // DOM References
+    const screenUpload = document.getElementById('screenUpload');
+    const screenConfig = document.getElementById('screenConfig');
+    const screenProcessing = document.getElementById('screenProcessing');
+    const screenSuccess = document.getElementById('screenSuccess');
+    const bottomBar = document.getElementById('bottomBar');
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadProgressBox = document.getElementById('uploadProgressBox');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const fileNamePreview = document.getElementById('fileNamePreview');
+    const docPagesCount = document.getElementById('docPagesCount');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const previewSheet = document.getElementById('previewSheet');
+    const previewScalingMode = document.getElementById('previewScalingMode');
+
+    // Live Price Calculation
+    function calculateTotal() {
+      const totalCost = state.pages * state.copies * state.rate;
+      totalPriceEl.textContent = `₹${totalCost.toFixed(2)}`;
+      return totalCost;
+    }
+
+    // Step 1: File Upload Simulation
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      state.fileName = file.name;
+      state.pages = 2;
+
+      uploadProgressBox.classList.remove('hidden');
+      let progress = 0;
+      const timer = setInterval(() => {
+        progress += 25;
+        progressBar.style.width = progress + '%';
+        progressText.textContent = progress + '%';
+
+        if (progress >= 100) {
+          clearInterval(timer);
+          setTimeout(() => {
+            screenUpload.classList.add('hidden');
+            screenConfig.classList.remove('hidden');
+            bottomBar.classList.remove('hidden');
+
+            fileNamePreview.textContent = state.fileName;
+            docPagesCount.textContent = state.pages;
+            calculateTotal();
+            lucide.createIcons();
+          }, 300);
+        }
+      }, 80);
+    });
+
+    // Helper for Option Switchers
+    function setupOptionGroup(buttonSelector, stateKey, callback = null) {
+      const buttons = document.querySelectorAll(buttonSelector);
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => {
+            b.classList.remove('pill-active');
+            b.classList.add('bg-white', 'text-noir');
+          });
+          btn.classList.add('pill-active');
+          btn.classList.remove('bg-white', 'text-noir');
+
+          state[stateKey] = btn.dataset[stateKey];
+          if (btn.dataset.rate) {
+            state.rate = parseFloat(btn.dataset.rate);
+          }
+          if (callback) callback(btn.dataset[stateKey]);
+          calculateTotal();
+        });
+      });
+    }
+
+    setupOptionGroup('.btn-color-mode', 'colorMode');
+    
+    // Orientation Switcher
+    setupOptionGroup('.btn-orient', 'orientation', (val) => {
+      if (val === 'landscape') {
+        previewSheet.classList.remove('w-44', 'h-56');
+        previewSheet.classList.add('w-56', 'h-40');
+      } else {
+        previewSheet.classList.remove('w-56', 'h-40');
+        previewSheet.classList.add('w-44', 'h-56');
+      }
+    });
+
+    // Scaling Switcher
+    setupOptionGroup('.btn-scaling', 'scaling', (val) => {
+      const scalingLabels = {
+        fit: 'Fit to Page',
+        actual: 'Actual Size (100%)',
+        fill: 'Fill Entire Page'
+      };
+      previewScalingMode.textContent = scalingLabels[val] || val;
+      
+      if (val === 'fit') {
+        previewSheet.style.transform = 'scale(0.96)';
+      } else if (val === 'actual') {
+        previewSheet.style.transform = 'scale(0.88)';
+      } else if (val === 'fill') {
+        previewSheet.style.transform = 'scale(1.02)';
+      }
+    });
+
+    // Stepper Handlers (Limited strictly between 1 and 20)
+    const btnIncCopies = document.getElementById('btnIncCopies');
+    const btnDecCopies = document.getElementById('btnDecCopies');
+    const copiesVal = document.getElementById('copiesVal');
+
+    btnIncCopies.addEventListener('click', () => {
+      if (state.copies < 20) {
+        state.copies++;
+        copiesVal.textContent = state.copies;
+        calculateTotal();
+      }
+    });
+
+    btnDecCopies.addEventListener('click', () => {
+      if (state.copies > 1) {
+        state.copies--;
+        copiesVal.textContent = state.copies;
+        calculateTotal();
+      }
+    });
+
+    // Change Document
+    document.getElementById('btnChangeDoc').addEventListener('click', () => {
+      uploadProgressBox.classList.add('hidden');
+      progressBar.style.width = '0%';
+      progressText.textContent = '0%';
+      fileInput.value = '';
+      screenConfig.classList.add('hidden');
+      bottomBar.classList.add('hidden');
+      screenUpload.classList.remove('hidden');
+    });
+
+    // Step 2 -> 3 -> 4: Payment Simulation
+    document.getElementById('btnPayNow').addEventListener('click', () => {
+      screenConfig.classList.add('hidden');
+      bottomBar.classList.add('hidden');
+      screenProcessing.classList.remove('hidden');
+
+      setTimeout(() => {
+        screenProcessing.classList.add('hidden');
+        screenSuccess.classList.remove('hidden');
+
+        const total = calculateTotal();
+        document.getElementById('orderToken').textContent = '#PR-' + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('receiptColor').textContent = state.colorMode === 'bw' ? 'Black & White' : 'Full Color';
+        document.getElementById('receiptScaling').textContent = state.scaling.toUpperCase();
+        document.getElementById('receiptPages').textContent = `${state.pages} Pages`;
+        document.getElementById('receiptCopies').textContent = state.copies;
+        document.getElementById('receiptTotal').textContent = `₹${total.toFixed(2)}`;
+
+        lucide.createIcons();
+      }, 1800);
+    });
+
+    // Reset Flow
+    document.getElementById('btnResetAll').addEventListener('click', () => {
+      state = {
+        pages: 2,
+        fileName: 'document.pdf',
+        colorMode: 'bw',
+        rate: 5.0,
+        orientation: 'auto',
+        scaling: 'fit',
+        copies: 1
+      };
+      copiesVal.textContent = '1';
+      fileInput.value = '';
+      uploadProgressBox.classList.add('hidden');
+      progressBar.style.width = '0%';
+      progressText.textContent = '0%';
+
+      screenSuccess.classList.add('hidden');
+      screenUpload.classList.remove('hidden');
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

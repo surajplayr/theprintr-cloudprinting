@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .custom-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .custom-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .pill-active {
+    background-color: #810100 !important;
+    color: #EDEBDE !important;
+    border-color: #810100 !important;
+  }
+}
