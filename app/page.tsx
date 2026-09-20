@@ -106,7 +106,7 @@ export default function Home() {
           if (ctx) {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
-            await page.render({ canvasContext: ctx, viewport }).promise;
+            await page.render({ canvasContext: ctx, viewport: viewport, canvas: canvas } as any).promise;
             newPreviewUrls.push({ url: canvas.toDataURL("image/jpeg", 0.8), pages: pdf.numPages });
           }
         } catch (err) {
