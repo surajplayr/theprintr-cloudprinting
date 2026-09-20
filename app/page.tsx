@@ -16,6 +16,12 @@ import {
 import Image from "next/image";
 import { supabase } from "../lib/supabase";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 type ScreenState = "upload" | "config" | "processing" | "success";
 
 export default function Home() {
@@ -43,6 +49,18 @@ export default function Home() {
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
   const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,28 +144,74 @@ export default function Home() {
     setScreen("processing");
     const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
 
-    const { error } = await supabase.from('orders').insert([{
-      order_number: generatedOrderToken,
-      file_url: fileUrl,
-      file_name: fileName,
-      pages: pages,
-      copies: copies,
-      color_mode: colorMode,
-      print_style: "Single Sided",
-      scaling: scaling,
-      status: 'pending',
-      total_amount: totalCost
-    }]);
-    
-    if (error) {
-      console.error("Supabase insert error:", error);
-      alert("Order creation failed: " + error.message);
+    try {
+      const res = await fetch("/api/create-razorpay-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: totalCost }),
+      });
+      
+      if (!res.ok) throw new Error("Failed to initialize payment");
+      const { orderId } = await res.json();
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        amount: totalCost * 100,
+        currency: "INR",
+        name: "The Printr",
+        description: "Document Printing Service",
+        order_id: orderId,
+        handler: async function (response: any) {
+          const { error } = await supabase.from('orders').insert([{
+            order_number: generatedOrderToken,
+            file_url: fileUrl,
+            file_name: fileName,
+            pages: pages,
+            copies: copies,
+            color_mode: colorMode,
+            print_style: "Single Sided",
+            scaling: scaling,
+            status: 'pending',
+            total_amount: totalCost,
+            payment_id: response.razorpay_payment_id
+          }]);
+          
+          if (error) {
+            console.error("Supabase insert error:", error);
+            alert("Order creation failed but payment was captured. Error: " + error.message);
+            setScreen("config");
+            return;
+          }
+          
+          setOrderToken(generatedOrderToken);
+          setScreen("success");
+        },
+        prefill: {
+          name: "Kiosk User",
+          email: "guest@theprintr.com",
+          contact: "9999999999"
+        },
+        theme: {
+          color: "#8B0000"
+        },
+        modal: {
+          ondismiss: function() {
+            setScreen("config");
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        alert("Payment Failed: " + response.error.description);
+        setScreen("config");
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error("Payment initialization failed:", err);
+      alert("Could not load payment gateway.");
       setScreen("config");
-      return;
     }
-    
-    setOrderToken(generatedOrderToken);
-    setScreen("success");
   };
 
   const handleReset = () => {
