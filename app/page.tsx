@@ -37,18 +37,16 @@ export default function Home() {
   const [copies, setCopies] = useState(1);
   const [orderToken, setOrderToken] = useState("");
   
-  const [fileType, setFileType] = useState<"image" | "pdf" | "other">("pdf");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<"image" | "pdf" | "other" | "mixed">("pdf");
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [previewUrl]);
+  }, [previewUrls]);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -68,63 +66,69 @@ export default function Home() {
   const calculateTotal = () => pages * copies * rate;
   const totalCost = calculateTotal();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    setFileName(file.name);
+    setFileName(files.map(f => f.name).join(", "));
     
-    if (file.type.startsWith("image/")) {
-      setFileType("image");
-      setPages(1);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setFileType(file.type === "application/pdf" ? "pdf" : "other");
-      setPages(1);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
-    }
+    const isAllImages = files.every(f => f.type.startsWith("image/"));
+    setFileType(isAllImages ? "image" : files.length > 1 ? "mixed" : files[0].type === "application/pdf" ? "pdf" : "other");
+    setPages(files.length); // 1 page per file for now
+
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    const newPreviewUrls = files.filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
+    setPreviewUrls(newPreviewUrls);
 
     setIsUploading(true);
     setUploadProgress(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || "theprintr_uploads");
+    const uploadedUrls: string[] = [];
+    let completed = 0;
 
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dkz2dbwv1"}/auto/upload`);
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET || "theprintr_uploads");
 
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percentComplete);
-      }
-    };
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dkz2dbwv1"}/auto/upload`);
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const response = JSON.parse(xhr.responseText);
-        setFileUrl(response.secure_url);
-        setTimeout(() => {
-          setIsUploading(false);
-          setScreen("config");
-        }, 500);
-      } else {
-        console.error("Upload failed");
-        setIsUploading(false);
-      }
-    };
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const fileProgress = (event.loaded / event.total);
+            const overallProgress = Math.round(((completed + fileProgress) / files.length) * 100);
+            setUploadProgress(overallProgress);
+          }
+        };
 
-    xhr.onerror = () => {
-      console.error("Upload error");
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            uploadedUrls.push(response.secure_url);
+            completed++;
+            resolve();
+          } else {
+            console.error("Upload failed for a file");
+            reject();
+          }
+        };
+
+        xhr.onerror = () => {
+          console.error("Upload error for a file");
+          reject();
+        };
+
+        xhr.send(formData);
+      });
+    }
+
+    setFileUrl(uploadedUrls.join(","));
+    setTimeout(() => {
       setIsUploading(false);
-    };
-
-    xhr.send(formData);
+      setScreen("config");
+    }, 500);
   };
 
   const handleColorMode = (mode: "bw" | "color", newRate: number) => {
@@ -169,7 +173,8 @@ export default function Home() {
             pages: pages,
             copies: copies,
             color_mode: colorMode,
-            print_style: "Single Sided",
+            print_style: colorMode,
+            orientation: orientation,
             scaling: scaling,
             status: 'pending',
             total_amount: totalCost,
@@ -215,10 +220,8 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
     setFileUrl("");
     setPages(1);
     setFileName("document.pdf");
@@ -292,6 +295,7 @@ export default function Home() {
                 className="hidden"
                 accept=".pdf,.doc,.docx,.ppt,.pptx,image/*"
                 onChange={handleFileUpload}
+                multiple
               />
             </label>
 
@@ -334,7 +338,7 @@ export default function Home() {
               <div className="flex items-center gap-2.5 overflow-hidden">
                 <div className="w-10 h-12 bg-cotton border border-noir/15 rounded-lg flex flex-col items-center justify-center text-cherry font-black text-[11px] shrink-0">
                   <FileText className="w-4 h-4 mb-0.5" />
-                  <span>{fileType === "image" ? "IMG" : "PDF"}</span>
+                  <span>{fileType === "image" ? "IMG" : fileType === "mixed" ? "MIX" : "PDF"}</span>
                 </div>
                 <div className="truncate">
                   <p className="text-xs font-extrabold text-noir truncate">{fileName}</p>
@@ -345,10 +349,8 @@ export default function Home() {
               </div>
               <button
                 onClick={() => {
-                  if (previewUrl) {
-                    URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl(null);
-                  }
+                  previewUrls.forEach(url => URL.revokeObjectURL(url));
+                  setPreviewUrls([]);
                   if (fileInputRef.current) fileInputRef.current.value = "";
                   setScreen("upload");
                 }}
@@ -375,14 +377,17 @@ export default function Home() {
                   transform: scaling === "fit" ? "scale(0.96)" : scaling === "actual" ? "scale(0.88)" : "scale(1.02)",
                 }}
               >
-                {previewUrl ? (
-                  <div className="absolute inset-0 flex items-center justify-center p-2 bg-white rounded-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-w-full max-h-full object-contain pointer-events-none transition-all duration-300"
-                    />
+                {previewUrls.length > 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center p-2 bg-white rounded-md gap-2 overflow-x-auto">
+                    {previewUrls.map((url, i) => (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        key={i}
+                        src={url}
+                        alt={`Preview ${i+1}`}
+                        className="max-w-full max-h-full object-contain pointer-events-none transition-all duration-300 shrink-0"
+                      />
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-1.5 w-full">
