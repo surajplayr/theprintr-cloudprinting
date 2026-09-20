@@ -38,13 +38,15 @@ export default function Home() {
   const [orderToken, setOrderToken] = useState("");
   
   const [fileType, setFileType] = useState<"image" | "pdf" | "other" | "mixed">("pdf");
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<{url: string, pages: number}[]>([]);
   const [fileUrl, setFileUrl] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     return () => {
-      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      previewUrls.forEach(p => {
+        if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+      });
     };
   }, [previewUrls]);
 
@@ -74,14 +76,52 @@ export default function Home() {
     
     const isAllImages = files.every(f => f.type.startsWith("image/"));
     setFileType(isAllImages ? "image" : files.length > 1 ? "mixed" : files[0].type === "application/pdf" ? "pdf" : "other");
-    setPages(files.length); // 1 page per file for now
-
-    previewUrls.forEach(url => URL.revokeObjectURL(url));
-    const newPreviewUrls = files.filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
-    setPreviewUrls(newPreviewUrls);
 
     setIsUploading(true);
     setUploadProgress(0);
+
+    previewUrls.forEach(p => {
+      if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+    });
+    const newPreviewUrls: {url: string, pages: number}[] = [];
+    let totalPagesCalculated = 0;
+
+    for (const file of files) {
+      if (file.type.startsWith("image/")) {
+        newPreviewUrls.push({ url: URL.createObjectURL(file), pages: 1 });
+        totalPagesCalculated += 1;
+      } else if (file.type === "application/pdf") {
+        try {
+          const pdfjsLib = await import("pdfjs-dist");
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          totalPagesCalculated += pdf.numPages;
+
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 1.0 });
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            newPreviewUrls.push({ url: canvas.toDataURL("image/jpeg", 0.8), pages: pdf.numPages });
+          }
+        } catch (err) {
+          console.error("Failed to parse PDF", err);
+          totalPagesCalculated += 1;
+          newPreviewUrls.push({ url: "", pages: 1 });
+        }
+      } else {
+        totalPagesCalculated += 1;
+        newPreviewUrls.push({ url: "", pages: 1 });
+      }
+    }
+
+    setPages(totalPagesCalculated);
+    setPreviewUrls(newPreviewUrls);
 
     const uploadedUrls: string[] = [];
     let completed = 0;
@@ -220,7 +260,9 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    previewUrls.forEach(p => {
+      if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+    });
     setPreviewUrls([]);
     setFileUrl("");
     setPages(1);
@@ -349,7 +391,9 @@ export default function Home() {
               </div>
               <button
                 onClick={() => {
-                  previewUrls.forEach(url => URL.revokeObjectURL(url));
+                  previewUrls.forEach(p => {
+                    if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
+                  });
                   setPreviewUrls([]);
                   if (fileInputRef.current) fileInputRef.current.value = "";
                   setScreen("upload");
@@ -378,15 +422,23 @@ export default function Home() {
                 }}
               >
                 {previewUrls.length > 0 ? (
-                  <div className="absolute inset-0 flex items-center justify-center p-2 bg-white rounded-md gap-2 overflow-x-auto">
-                    {previewUrls.map((url, i) => (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        key={i}
-                        src={url}
-                        alt={`Preview ${i+1}`}
-                        className="max-w-full max-h-full object-contain pointer-events-none transition-all duration-300 shrink-0"
-                      />
+                  <div className="absolute inset-0 flex items-center justify-start p-2 bg-white rounded-md gap-2 overflow-x-auto custom-scroll">
+                    {previewUrls.map((p, i) => (
+                      <div key={i} className="relative h-full shrink-0 flex items-center justify-center bg-noir/5 rounded-md border border-noir/10 p-1 aspect-[1/1.4]">
+                        {p.url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={p.url}
+                            alt={`Preview ${i+1}`}
+                            className="max-w-full max-h-full object-contain pointer-events-none transition-all duration-300"
+                          />
+                        ) : (
+                          <FileText className="w-8 h-8 text-noir/20" />
+                        )}
+                        <span className="absolute bottom-1 right-1 bg-noir text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                          {p.pages} pg
+                        </span>
+                      </div>
                     ))}
                   </div>
                 ) : (
