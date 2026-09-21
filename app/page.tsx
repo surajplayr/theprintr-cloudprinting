@@ -177,7 +177,11 @@ export default function Home() {
   };
 
   const handleIncCopies = () => {
-    if (copies < 20) setCopies(copies + 1);
+    if (copies < 20) {
+      setCopies(copies + 1);
+    } else {
+      window.alert("Maximum 20 copies allowed per order.");
+    }
   };
 
   const handleDecCopies = () => {
@@ -328,14 +332,14 @@ export default function Home() {
               <span className="font-bold text-noir text-base">Drop your file here</span>
               <span className="text-xs text-noir/60 mt-1">or tap to browse your phone</span>
               <span className="inline-block mt-3 px-3 py-1 bg-noir/5 text-noir/70 text-[11px] font-semibold rounded-md border border-noir/10">
-                PDF, DOCX, PPTX, JPG, PNG
+                PDF, JPG, PNG
               </span>
               <input
                 type="file"
                 id="fileInput"
                 ref={fileInputRef}
                 className="hidden"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,image/*"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp"
                 onChange={handleFileUpload}
                 multiple
               />
@@ -572,7 +576,6 @@ export default function Home() {
             <div className="bg-white rounded-2xl p-3 border border-noir/10 flex items-center justify-between shadow-sm">
               <div>
                 <span className="text-xs font-bold text-noir block">Number of Copies</span>
-                <span className="text-[10px] text-noir/50 font-medium">Max 20 copies per order</span>
               </div>
               <div className="flex items-center space-x-3">
                 <button
