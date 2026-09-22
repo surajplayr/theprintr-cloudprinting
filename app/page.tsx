@@ -188,6 +188,8 @@ export default function Home() {
     if (copies > 1) setCopies(copies - 1);
   };
 
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cash">("online");
+
   const handlePayNow = async () => {
     setScreen("processing");
     const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
@@ -233,6 +235,7 @@ export default function Home() {
           }
           
           setOrderToken(generatedOrderToken);
+          setPaymentMethod("online");
           setScreen("success");
         },
         prefill: {
@@ -263,6 +266,37 @@ export default function Home() {
     }
   };
 
+  const handleCashPayment = async () => {
+    setScreen("processing");
+    const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
+
+    const { error } = await supabase.from('orders').insert([{
+      order_number: generatedOrderToken,
+      file_url: fileUrl,
+      file_name: fileName,
+      pages: pages,
+      copies: copies,
+      color_mode: colorMode,
+      print_style: colorMode,
+      orientation: orientation,
+      scaling: scaling,
+      status: 'pending',
+      total_amount: totalCost,
+      payment_id: 'CASH_AT_COUNTER'
+    }]);
+    
+    if (error) {
+      console.error("Supabase insert error:", error);
+      alert("Order creation failed. Error: " + error.message);
+      setScreen("config");
+      return;
+    }
+    
+    setOrderToken(generatedOrderToken);
+    setPaymentMethod("cash");
+    setScreen("success");
+  };
+
   const handleReset = () => {
     previewUrls.forEach(p => {
       if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
@@ -278,6 +312,7 @@ export default function Home() {
     setScaling("fit");
     setCopies(1);
     setUploadProgress(0);
+    setPaymentMethod("online");
     setScreen("upload");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -622,7 +657,11 @@ export default function Home() {
                 <Check className="w-9 h-9 stroke-[3]" />
               </div>
               <h2 className="text-2xl font-black text-noir">Order Queued!</h2>
-              <p className="text-xs text-noir/70 mt-0.5">Printer Epson L8050 has received your document</p>
+              <p className="text-xs text-noir/70 mt-0.5">
+                {paymentMethod === "cash" 
+                  ? "Order placed! Your document is printing. Please pay cash at the counter." 
+                  : "Printer Epson L8050 has received your document"}
+              </p>
             </div>
 
             {/* Receipt Card */}
@@ -660,7 +699,7 @@ export default function Home() {
               </div>
 
               <div className="pt-3 border-t border-noir/10 flex items-center justify-between">
-                <span className="font-black text-sm text-noir">Total Paid</span>
+                <span className="font-black text-sm text-noir">{paymentMethod === "cash" ? "Total Due" : "Total Paid"}</span>
                 <span className="font-black text-lg text-cherry">₹{totalCost.toFixed(2)}</span>
               </div>
             </div>
@@ -678,18 +717,25 @@ export default function Home() {
 
       {/* Sticky Bottom Calculation & Checkout Bar */}
       {screen === "config" && (
-        <footer className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-noir/10 px-5 py-3.5 z-20 flex items-center justify-between">
-          <div>
+        <footer className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-noir/10 px-4 py-3 z-20 flex items-center justify-between gap-3">
+          <div className="shrink-0">
             <p className="text-[10px] text-noir/60 uppercase font-extrabold tracking-wider">Estimated Total</p>
-            <p className="text-2xl font-black text-cherry leading-tight">₹{totalCost.toFixed(2)}</p>
+            <p className="text-xl font-black text-cherry leading-tight">₹{totalCost.toFixed(2)}</p>
           </div>
-          <button
-            onClick={handlePayNow}
-            className="bg-cherry hover:bg-maroon active:scale-95 transition-all text-cotton font-extrabold text-xs py-3 px-6 rounded-xl shadow-md flex items-center gap-1.5"
-          >
-            <span>Confirm & Pay</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="flex flex-col gap-2 w-full max-w-[200px]">
+            <button
+              onClick={handlePayNow}
+              className="bg-cherry hover:bg-maroon active:scale-95 transition-all text-cotton font-extrabold text-[11px] py-2 px-3 rounded-lg shadow-md flex items-center justify-center gap-1.5 w-full"
+            >
+              <span>Pay Online (UPI/Cards)</span>
+            </button>
+            <button
+              onClick={handleCashPayment}
+              className="bg-transparent border border-cherry text-cherry hover:bg-cherry/5 active:scale-95 transition-all font-extrabold text-[11px] py-1.5 px-3 rounded-lg flex items-center justify-center w-full"
+            >
+              <span>Pay Cash at Counter</span>
+            </button>
+          </div>
         </footer>
       )}
     </div>
