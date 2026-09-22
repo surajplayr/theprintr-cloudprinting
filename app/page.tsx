@@ -68,6 +68,12 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [screen]);
 
   const calculateTotal = () => pages * copies * rate;
   const totalCost = calculateTotal();
@@ -87,7 +93,6 @@ export default function Home() {
 
     setIsUploading(true);
     setUploadProgress(0);
-    setScreen("config");
 
     previewUrls.forEach(p => {
       if (p.url.startsWith("blob:")) URL.revokeObjectURL(p.url);
@@ -175,6 +180,7 @@ export default function Home() {
 
     setFileUrl(uploadedUrls.join(","));
     setIsUploading(false);
+    setScreen("config");
   };
 
   const handleColorMode = (mode: "bw" | "color", newRate: number) => {
@@ -362,29 +368,48 @@ export default function Home() {
               <p className="text-xs text-noir/70 font-medium">Upload any document directly from your device</p>
             </div>
 
-            {/* Drag & Drop Upload Zone */}
-            <label
-              htmlFor="fileInput"
-              className="border-2 border-dashed border-maroon/40 hover:border-cherry bg-white/60 hover:bg-white transition-all rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer group shadow-sm text-center active:scale-[0.98] duration-200"
-            >
-              <div className="w-16 h-16 rounded-full bg-cherry/10 group-hover:scale-105 transition-transform flex items-center justify-center text-cherry mb-4">
-                <FileUp className="w-8 h-8" />
+            {/* Drag & Drop Upload Zone OR Progress Banner */}
+            {!isUploading ? (
+              <label
+                htmlFor="fileInput"
+                className="border-2 border-dashed border-maroon/40 hover:border-cherry bg-white/60 hover:bg-white transition-all rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer group shadow-sm text-center active:scale-[0.98] duration-200"
+              >
+                <div className="w-16 h-16 rounded-full bg-cherry/10 group-hover:scale-105 transition-transform flex items-center justify-center text-cherry mb-4">
+                  <FileUp className="w-8 h-8" />
+                </div>
+                <span className="font-bold text-noir text-base">Drop your file here</span>
+                <span className="text-xs text-noir/60 mt-1">or tap to browse your phone</span>
+                <span className="inline-block mt-3 px-3 py-1 bg-noir/5 text-noir/70 text-[11px] font-semibold rounded-md border border-noir/10">
+                  PDF, JPG, PNG
+                </span>
+                <input
+                  type="file"
+                  id="fileInput"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp"
+                  onChange={handleFileUpload}
+                  multiple
+                />
+              </label>
+            ) : (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-noir/10 space-y-4 animate-fade-in-up">
+                <div className="flex items-center justify-between text-xs font-bold text-noir">
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-cherry" />
+                    Uploading document...
+                  </span>
+                  <span className="text-cherry font-extrabold">{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-3 bg-cotton rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-cherry transition-all duration-300 rounded-full"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-[11px] text-noir/60 text-center">Please stay on this page while we process your file.</p>
               </div>
-              <span className="font-bold text-noir text-base">Drop your file here</span>
-              <span className="text-xs text-noir/60 mt-1">or tap to browse your phone</span>
-              <span className="inline-block mt-3 px-3 py-1 bg-noir/5 text-noir/70 text-[11px] font-semibold rounded-md border border-noir/10">
-                PDF, JPG, PNG
-              </span>
-              <input
-                type="file"
-                id="fileInput"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp"
-                onChange={handleFileUpload}
-                multiple
-              />
-            </label>
+            )}
 
             {/* Trust & Security Banner */}
             <div className="flex items-start gap-3 bg-white/70 rounded-xl p-3.5 border border-noir/10 text-xs text-noir/80 hover:shadow-md transition-all duration-200">
@@ -431,15 +456,6 @@ export default function Home() {
 
             {/* Document Live Print Preview Canvas */}
             <div className="bg-noir/5 border border-noir/10 rounded-2xl p-3 flex flex-col items-center justify-center space-y-2 relative">
-              {isUploading && (
-                <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center">
-                  <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-noir/10 flex flex-col items-center animate-pulse">
-                    <Loader2 className="w-6 h-6 text-cherry animate-spin mb-1.5" />
-                    <p className="text-xs font-bold text-noir">Uploading...</p>
-                    <p className="text-[10px] text-noir/50">{uploadProgress}% complete</p>
-                  </div>
-                </div>
-              )}
               <div className="flex items-center justify-between w-full px-1 text-[11px] font-bold text-noir/70">
                 <span>Print Viewport</span>
                 <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-noir/10 font-semibold text-noir">
