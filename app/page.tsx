@@ -192,7 +192,6 @@ export default function Home() {
 
   const handlePayNow = async () => {
     setScreen("processing");
-    const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
 
     try {
       const res = await fetch("/api/create-razorpay-order", {
@@ -212,8 +211,7 @@ export default function Home() {
         description: "Document Printing Service",
         order_id: orderId,
         handler: async function (response: any) {
-          const { error } = await supabase.from('orders').insert([{
-            order_number: generatedOrderToken,
+          const { data, error } = await supabase.from('orders').insert([{
             file_url: fileUrl,
             file_name: fileName,
             pages: pages,
@@ -225,7 +223,7 @@ export default function Home() {
             status: 'pending',
             total_amount: totalCost,
             payment_id: response.razorpay_payment_id
-          }]);
+          }]).select().single();
           
           if (error) {
             console.error("Supabase insert error:", error);
@@ -234,7 +232,8 @@ export default function Home() {
             return;
           }
           
-          setOrderToken(generatedOrderToken);
+          const formattedSeq = String(data.order_seq).padStart(4, '0');
+          setOrderToken(formattedSeq);
           setPaymentMethod("online");
           setScreen("success");
         },
@@ -268,10 +267,8 @@ export default function Home() {
 
   const handleCashPayment = async () => {
     setScreen("processing");
-    const generatedOrderToken = "#PR-" + Math.floor(1000 + Math.random() * 9000);
 
-    const { error } = await supabase.from('orders').insert([{
-      order_number: generatedOrderToken,
+    const { data, error } = await supabase.from('orders').insert([{
       file_url: fileUrl,
       file_name: fileName,
       pages: pages,
@@ -283,7 +280,7 @@ export default function Home() {
       status: 'pending',
       total_amount: totalCost,
       payment_id: 'CASH_AT_COUNTER'
-    }]);
+    }]).select().single();
     
     if (error) {
       console.error("Supabase insert error:", error);
@@ -292,7 +289,8 @@ export default function Home() {
       return;
     }
     
-    setOrderToken(generatedOrderToken);
+    const formattedSeq = String(data.order_seq).padStart(4, '0');
+    setOrderToken(formattedSeq);
     setPaymentMethod("cash");
     setScreen("success");
   };
