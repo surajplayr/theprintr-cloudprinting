@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
@@ -32,6 +33,7 @@ export default function RootLayout({
             &copy; {new Date().getFullYear()} ThePrintr. All rights reserved.
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   );
