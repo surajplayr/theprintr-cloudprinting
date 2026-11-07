@@ -182,12 +182,12 @@ export default function AdminPage() {
           </button>
 
           <div className="pt-2 text-center">
-            <a
-              href="https://print.theprintr.in"
+            <Link
+              href="/"
               className="text-xs font-semibold text-noir/60 hover:text-cherry inline-flex items-center gap-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Kiosk
-            </a>
+            </Link>
           </div>
         </form>
       </div>
@@ -224,13 +224,13 @@ export default function AdminPage() {
             <span>Refresh</span>
           </button>
 
-          <a
-            href="https://print.theprintr.in"
+          <Link
+            href="/"
             className="px-3.5 py-2 bg-cotton hover:bg-noir/10 text-noir font-bold text-xs rounded-xl border border-noir/15 transition-all flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>View Kiosk</span>
-          </a>
+          </Link>
 
           <button
             onClick={() => setIsAuthenticated(false)}
