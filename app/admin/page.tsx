@@ -52,7 +52,7 @@ export default function AdminPage() {
 
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === "1234") {
+    if (pin === "1396") {
       setIsAuthenticated(true);
       setPinError("");
     } else {
@@ -93,20 +93,23 @@ export default function AdminPage() {
   const handleApprove = async (orderId: string) => {
     setApprovingId(orderId);
     try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: "queued" })
-        .eq("id", orderId);
+      const res = await fetch("/api/admin/approve-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
 
-      if (error) {
-        console.error("Supabase update error:", error);
-        alert("Failed to approve order: " + error.message);
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        console.error("Supabase update error:", result.error);
+        alert("Failed to approve order: " + (result.error || "Unknown server error"));
       } else {
         await fetchOrders();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error approving order:", err);
-      alert("Failed to approve order.");
+      alert("Network error while approving order.");
     } finally {
       setApprovingId(null);
     }
@@ -179,12 +182,12 @@ export default function AdminPage() {
           </button>
 
           <div className="pt-2 text-center">
-            <Link
-              href="/"
+            <a
+              href="https://print.theprintr.in"
               className="text-xs font-semibold text-noir/60 hover:text-cherry inline-flex items-center gap-1 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Kiosk
-            </Link>
+            </a>
           </div>
         </form>
       </div>
@@ -221,13 +224,13 @@ export default function AdminPage() {
             <span>Refresh</span>
           </button>
 
-          <Link
-            href="/"
+          <a
+            href="https://print.theprintr.in"
             className="px-3.5 py-2 bg-cotton hover:bg-noir/10 text-noir font-bold text-xs rounded-xl border border-noir/15 transition-all flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>View Kiosk</span>
-          </Link>
+          </a>
 
           <button
             onClick={() => setIsAuthenticated(false)}
