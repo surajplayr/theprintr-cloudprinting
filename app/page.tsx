@@ -244,8 +244,8 @@ export default function Home() {
             return;
           }
           
-          const formattedSeq = String(data.order_seq).padStart(4, '0');
-          setOrderToken(formattedSeq);
+          const formattedOrderId = `CPT${String(data.order_seq).padStart(5, '0')}`;
+          setOrderToken(formattedOrderId);
           setPaymentMethod("online");
           setScreen("success");
           setIsSubmittingOnline(false);
@@ -290,7 +290,7 @@ export default function Home() {
       print_style: colorMode,
       orientation: orientation,
       scaling: scaling,
-      status: 'pending',
+      status: 'awaiting_cash',
       total_amount: totalCost,
       payment_id: 'CASH_AT_COUNTER'
     }]).select().single();
@@ -302,8 +302,8 @@ export default function Home() {
       return;
     }
     
-    const formattedSeq = String(data.order_seq).padStart(4, '0');
-    setOrderToken(formattedSeq);
+    const formattedOrderId = `CPT${String(data.order_seq).padStart(5, '0')}`;
+    setOrderToken(formattedOrderId);
     setPaymentMethod("cash");
     setScreen("success");
     setIsSubmittingCash(false);
@@ -324,6 +324,7 @@ export default function Home() {
     setScaling("fit");
     setCopies(1);
     setUploadProgress(0);
+    setOrderToken("");
     setPaymentMethod("online");
     setScreen("upload");
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -649,10 +650,12 @@ export default function Home() {
               <div className="w-16 h-16 bg-cherry text-cotton rounded-full mx-auto flex items-center justify-center mb-3 shadow-lg">
                 <Check className="w-9 h-9 stroke-[3]" />
               </div>
-              <h2 className="text-2xl font-black text-noir">Order Queued!</h2>
+              <h2 className="text-2xl font-black text-noir">
+                {paymentMethod === "cash" ? "Order Placed!" : "Order Queued!"}
+              </h2>
               <p className="text-xs text-noir/70 mt-0.5">
                 {paymentMethod === "cash" 
-                  ? "Order placed! Your document is printing. Please pay cash at the counter." 
+                  ? "Order placed! Please pay cash at the counter to start printing." 
                   : "Printer Epson L8050 has received your document"}
               </p>
             </div>
@@ -660,8 +663,8 @@ export default function Home() {
             {/* Receipt Card */}
             <div className="bg-white rounded-2xl p-5 border border-noir/10 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between pb-3 border-b border-noir/10">
-                <span className="text-xs text-noir/60 font-medium">Order Token</span>
-                <span className="font-extrabold text-sm text-cherry">{orderToken}</span>
+                <span className="text-xs text-noir/60 font-medium">Order ID</span>
+                <span className="font-extrabold text-sm text-cherry tracking-wide">{orderToken}</span>
               </div>
 
               <div className="space-y-2 text-xs">
